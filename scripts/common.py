@@ -96,6 +96,10 @@ class Project:
     """Folder layout of one reel project."""
     root: Path
 
+    def __post_init__(self) -> None:
+        """Absolute root: ffmpeg concat lists resolve file names relative to the list itself."""
+        self.root = Path(self.root).resolve()
+
     @property
     def work(self) -> Path:
         """Intermediate files."""
