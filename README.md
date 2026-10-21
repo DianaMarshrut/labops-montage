@@ -1,7 +1,7 @@
 # labops-montage
 
 Скилл для Claude Code: Claude сам монтирует ваш рилс из сырого видео с телефона, а вы только выбираете варианты и говорите «ОК».
-Автор: [LabOps.ai](https://labopsai.pro).
+Автор: [labops](https://labopsai.pro).
 
 ## Как начать
 
@@ -123,4 +123,4 @@ python3 scripts/selftest.py --keep
 
 ## Лицензия
 
-MIT, LabOps.ai. Пользуйтесь, меняйте и передавайте дальше, сохраняя файл LICENSE.
+MIT, labops. Пользуйтесь, меняйте и передавайте дальше, сохраняя файл LICENSE.
