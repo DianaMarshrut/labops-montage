@@ -38,3 +38,7 @@ python3 scripts/selftest.py
 - `scripts/`: все шаги монтажа. У каждого скрипта есть `--help`.
 - `assets/sfx/`: наши звуковые эффекты (синтез, `scripts/sfx_synth.py`).
 - Шрифты субтитров подключаются из Google Fonts (лицензия SIL OFL).
+
+## Лицензия
+
+MIT, LabOps.ai. Пользуйтесь, меняйте и передавайте дальше, сохраняя файл LICENSE.
