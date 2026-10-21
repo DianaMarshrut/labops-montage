@@ -1,7 +1,7 @@
 """Word-level speech recognition (Whisper) -> words.json.
 
   python3 transcribe.py <audio_or_video> <out_words.json> [--lang ru] [--engine auto|local|groq|openai]
-                        [--prompt "Claude, HyperFrames, labops"]
+                        [--prompt "Claude, HyperFrames, labopsai"]
 
 Engines:
   local   faster-whisper on this computer, free (pip install faster-whisper; first run downloads the model)

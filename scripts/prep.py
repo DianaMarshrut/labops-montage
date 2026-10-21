@@ -1,6 +1,6 @@
 """Raw talking-head take -> clean cut with word timings.
 
-  python3 prep.py init <raw.mov> <project> [--lang ru] [--engine auto] [--prompt "Claude, labops"]
+  python3 prep.py init <raw.mov> <project> [--lang ru] [--engine auto] [--prompt "Claude, labopsai"]
       vertical 1080x1920 @30 (work/source.mp4), word timings (work/words.raw.json),
       numbered phrases for review (work/phrases.txt)
   python3 prep.py cut <project> [--drop 3.2-7.9,20.1-22.4] [--max-gap 0.35] [--pause 0.2] [--speed 1.2]

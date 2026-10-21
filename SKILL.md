@@ -5,7 +5,7 @@ description: Edit vertical talking-head reels (Instagram Reels, Shorts, TikTok) 
 
 # labops-montage
 
-Reels editing by labops. Scripts in `scripts/` of this skill's folder (usually `~/.claude/skills/labops-montage`),
+Reels editing by labopsai. Scripts in `scripts/` of this skill's folder (usually `~/.claude/skills/labops-montage`),
 run with `python3 <skill folder>/scripts/<name>.py`; the commands below are relative to that folder. Every script has `--help`.
 
 **Talk to the user in their language, simply, no technical details unless asked.** Before installing anything,
