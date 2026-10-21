@@ -1,0 +1,8 @@
+numpy>=1.24
+requests>=2.31
+playwright>=1.40
+# optional: free local speech recognition instead of Groq/OpenAI
+# faster-whisper>=1.0
+# optional: face tracking
+# opencv-python>=4.8
+# mediapipe>=0.10
