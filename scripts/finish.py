@@ -8,7 +8,7 @@ Reads from the project:
   work/framed.mp4             the same with jump zooms from faces.py frame (used instead when present)
   work/subs.mov               caption track from subtitles.py (optional)
   work/overlays/*.mov         other transparent tracks (graphics), applied in name order (optional)
-  work/sfx.json               [{"t": 3.2, "kind": "whoosh", "gain": -6}, ...]  kinds = assets/sfx/<kind>.wav
+  work/sfx.json               [{"t": 3.2, "kind": "whoosh", "gain": -6}, ...]  kinds = assets/sfx/<kind>.wav or .mp3
                               or "file": "/path/sound.wav" for any other sound (optional)
   work/grey.json              [{"a": 5.0, "b": 6.4}, ...] grey moments: black-and-white picture (optional)
 
@@ -46,7 +46,10 @@ def sfx_inputs(proj: Project) -> list[tuple[Path, float, float]]:
         return []
     out = []
     for e in json.loads(path.read_text()):
-        f = Path(e["file"]) if e.get("file") else SKILL_DIR / "assets" / "sfx" / f"{e['kind']}.wav"
+        sfx_dir = SKILL_DIR / "assets" / "sfx"
+        f = Path(e["file"]) if e.get("file") else next(
+            (p for p in (sfx_dir / f"{e['kind']}.wav", sfx_dir / f"{e['kind']}.mp3") if p.exists()),
+            sfx_dir / f"{e['kind']}.wav")
         if not f.exists():
             raise SystemExit(f"sound not found: {f}")
         out.append((f, float(e["t"]), float(e.get("gain", -8))))
