@@ -5,6 +5,7 @@
 
 Reads from the project:
   work/clean.mp4              picture and voice after prep.py cut
+  work/framed.mp4             the same with jump zooms from faces.py frame (used instead when present)
   work/subs.mov               caption track from subtitles.py (optional)
   work/overlays/*.mov         other transparent tracks (graphics), applied in name order (optional)
   work/sfx.json               [{"t": 3.2, "kind": "whoosh", "gain": -6}, ...]  kinds = assets/sfx/<kind>.wav
@@ -60,12 +61,14 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
     total = duration(clean)
     voice_chain = DENOISE if denoise else "anull"
     gain = target - loudness(clean, voice_chain)
-    tracks = ([proj.work / "subs.mov"] if (proj.work / "subs.mov").exists() else [])
-    tracks += sorted((proj.work / "overlays").glob("*.mov")) if (proj.work / "overlays").exists() else []
+    # graphics first, captions last so they stay on top
+    tracks = sorted((proj.work / "overlays").glob("*.mov")) if (proj.work / "overlays").exists() else []
+    tracks += [proj.work / "subs.mov"] if (proj.work / "subs.mov").exists() else []
     sfx = sfx_inputs(proj)
     grey = json.loads((proj.work / "grey.json").read_text()) if (proj.work / "grey.json").exists() else []
 
-    ins = ["-i", str(clean)]
+    picture = proj.work / "framed.mp4" if (proj.work / "framed.mp4").exists() else clean
+    ins = ["-i", str(picture)]
     for t in tracks:
         ins += ["-i", str(t)]
     for f, _, _ in sfx:
@@ -92,7 +95,7 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
                      f"adelay={ms}|{ms},volume={g}dB[s{k}]")
         mix.append(f"[s{k}]")
     graph.append(f"{''.join(mix)}amix=inputs={len(mix)}:normalize=0:duration=first,"
-                 "alimiter=limit=0.89:level=false[a]")
+                 "alimiter=limit=0.79:level=false[a]")
 
     out = proj.out / (f"{name}.mp4" if final else "preview.mp4")
     script = proj.work / "finish.filter"
