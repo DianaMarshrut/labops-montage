@@ -3,8 +3,8 @@
   python3 subtitles.py list
   python3 subtitles.py sheet <frame.jpg> <out.png> [--text "я попросила ии|сделать ремонт"]
       numbered catalogue of all styles on a real frame of the user's video (step 3 of SKILL.md)
-  python3 subtitles.py render <project> --style <id> [--accent "ремонт,ИИ"] [--top 1250] [--case lower|keep|upper]
-                              [--words 3] [--chars 18] [--no-pop]
+  python3 subtitles.py render <project> --style <id> [--accent "ремонт,ИИ"] [--accent-look N] [--top 1250]
+                              [--case lower|keep|upper] [--words 3] [--chars 18] [--no-pop]
       reads work/words.json (fix typos there first), writes work/captions.json, work/subs.mov
       (PNG frames with alpha) and out/subs-preview.mp4 (captions over work/clean.mp4, 720p)
 
@@ -106,6 +106,7 @@ STYLES: list[Style] = [
           ".e{color:#3DF5FF}"),
 ]
 BY_ID = {s.id: s for s in STYLES}
+CAVEAT = '<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">'
 
 
 def scoped(style: Style, scope: str) -> str:
@@ -177,12 +178,12 @@ def markup(words: list[str], accents: set[str], karaoke_index: int | None = None
     return "<br>".join(f'<span class="l">{" ".join(l)}</span>' for l in lines)
 
 
-def page(style: Style, body: str, top: int, scale: float = 1.0) -> str:
+def page(style: Style, body: str, top: int, scale: float = 1.0, extra: str = "") -> str:
     """Full transparent 1080x1920 page with one caption block."""
-    return (f"<html><head><meta charset='utf-8'>{fonts_link([style])}<style>"
+    return (f"<html><head><meta charset='utf-8'>{fonts_link([style])}{CAVEAT}<style>"
             f"html,body{{margin:0;width:{W}px;height:{H}px;background:transparent}}"
             f"#cap .wrap{{position:absolute;left:60px;right:60px;top:{top}px;text-align:center;"
-            f"transform:scale({scale});transform-origin:50% 50%}}{scoped(style, '#cap')}</style></head>"
+            f"transform:scale({scale});transform-origin:50% 50%}}{scoped(style, '#cap')}{extra}</style></head>"
             f"<body><div id='cap'><div class='wrap'><div class='c'>{body}</div></div></div></body></html>")
 
 
@@ -206,11 +207,14 @@ def frames_needed(c: Chunk, style: Style, pop: bool) -> list[tuple[float, float,
 
 
 def render(proj: Project, style_id: str, accents: set[str], top: int, case: str,
-           max_words: int, max_chars: int, pop: bool) -> None:
+           max_words: int, max_chars: int, pop: bool, accent_look: int = 0) -> None:
     """Caption PNGs -> work/subs.mov track + 720p preview over the clean cut."""
     from playwright.sync_api import sync_playwright
 
+    from catalogs import ACCENTS
+
     style = BY_ID[style_id]
+    extra = f"#cap .e{{{ACCENTS[accent_look - 1][1]}}}" if accent_look else ""
     words = load_words(proj.work / "words.json")
     total = float(run([tool("ffprobe"), "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
                        str(proj.work / "clean.mp4")]).stdout)
@@ -230,7 +234,7 @@ def render(proj: Project, style_id: str, accents: set[str], top: int, case: str,
             texts = [clean(w.text, case) for w in c.words]
             for a, b, k, scale in frames_needed(c, style, pop):
                 png = folder / f"{n:05d}.png"
-                pg.set_content(page(style, markup(texts, accents, k), top, scale), wait_until="networkidle")
+                pg.set_content(page(style, markup(texts, accents, k), top, scale, extra), wait_until="networkidle")
                 pg.evaluate("document.fonts.ready")
                 pg.screenshot(path=str(png), omit_background=True)
                 timeline.append((a, b, png))
@@ -260,7 +264,8 @@ def render(proj: Project, style_id: str, accents: set[str], top: int, case: str,
     run([tool("ffmpeg"), "-y", "-i", str(proj.work / "clean.mp4"), "-i", str(track), "-filter_complex",
          "[0:v][1:v]overlay=0:0:format=auto,scale=720:1280:flags=lanczos[v]", "-map", "[v]", "-map", "0:a",
          "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac", "-b:a", "128k", str(preview)])
-    proj.update(subs={"style": style_id, "accents": sorted(accents), "top": top, "case": case})
+    proj.update(subs={"style": style_id, "accents": sorted(accents), "accent_look": accent_look, "top": top,
+                      "case": case})
     log.info("%d chunks, %d caption frames -> %s, preview %s", len(cs), len(timeline), track, preview)
 
 
@@ -314,6 +319,7 @@ def main() -> None:
     r.add_argument("--words", type=int, default=3)
     r.add_argument("--chars", type=int, default=18)
     r.add_argument("--no-pop", action="store_true")
+    r.add_argument("--accent-look", type=int, default=0, help="number from `catalogs.py accents` (0 = style's own)")
     a = ap.parse_args()
     if a.cmd == "list":
         for i, st in enumerate(STYLES, 1):
@@ -322,7 +328,7 @@ def main() -> None:
         sheet(a.frame, a.out, a.text)
     else:
         acc = {re.sub(r"\W", "", x.lower()) for x in a.accent.split(",") if x.strip()}
-        render(Project(a.project), a.style, acc, a.top, a.case, a.words, a.chars, not a.no_pop)
+        render(Project(a.project), a.style, acc, a.top, a.case, a.words, a.chars, not a.no_pop, a.accent_look)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ plan.json = {"beats": [beat, ...]}; a beat:
                      "layout": "card|full|split", "text": "for kind=text"},
    "accent": ["слово"],               caption accent words in this beat
    "sfx": null | "whoosh" | {"kind": "pop", "gain": -8, "at": 0.0},
-   "grey": false}                      grey moment: slip / pause / "тупит" -> black-and-white
+   "grey": false}                      grey moment: true = black-and-white, "spinner" = plus loading icon
 Times are on the clean timeline (work/words.json). Draft beats with "TODO" in insert.src must be filled
 with a real file before apply.
 """
@@ -168,7 +168,7 @@ def apply(proj: Project) -> None:
             s = {"kind": b["sfx"]} if isinstance(b["sfx"], str) else dict(b["sfx"])
             sfx.append({"t": round(b["a"] + s.pop("at", 0.0), 3), "kind": s["kind"], "gain": s.get("gain", -8)})
         if b.get("grey"):
-            grey.append({"a": b["a"], "b": b["b"]})
+            grey.append({"a": b["a"], "b": b["b"], "spinner": b["grey"] == "spinner"})
         zooms.append({"a": b["a"], "b": b["b"], "zoom": b["zoom"]})
         if b.get("insert"):
             inserts.append({"a": b["a"], "b": b["b"], **b["insert"]})

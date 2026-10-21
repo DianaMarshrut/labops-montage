@@ -10,7 +10,8 @@ Reads from the project:
   work/overlays/*.mov         other transparent tracks (graphics), applied in name order (optional)
   work/sfx.json               [{"t": 3.2, "kind": "whoosh", "gain": -6}, ...]  kinds = assets/sfx/<kind>.wav or .mp3
                               or "file": "/path/sound.wav" for any other sound (optional)
-  work/grey.json              [{"a": 5.0, "b": 6.4}, ...] grey moments: black-and-white picture (optional)
+  work/grey.json              [{"a": 5.0, "b": 6.4, "spinner": false}, ...] grey moments: black-and-white
+                              picture, optionally with a loading spinner in the middle (optional)
 
 Sound rules: no music (it is added in Instagram at publishing); gentle denoise (high-pass 70 Hz + light FFT
 denoise) and one static gain to the target loudness. No loudness compressor: it lifts room noise in every pause.
@@ -21,6 +22,7 @@ import argparse
 import json
 import logging
 import re
+import subprocess
 from pathlib import Path
 
 from common import FPS, SKILL_DIR, Project, duration, run, setup_logging, tool
@@ -37,6 +39,25 @@ def loudness(src: Path, chain: str) -> float:
     if not found:
         raise RuntimeError("could not measure loudness")
     return float(found[-1])
+
+
+def spinner_png(work: Path) -> Path:
+    """Loading spinner (faint ring + bright arc), 300x300 RGBA, drawn with numpy."""
+    import numpy as np
+
+    out = work / "spinner.png"
+    if out.exists():
+        return out
+    n = 300
+    y, x = np.mgrid[:n, :n] - n / 2 + 0.5
+    r, ang = np.hypot(x, y), np.arctan2(y, x)
+    ring = np.clip(1 - np.abs(r - 110) / 14, 0, 1)
+    arc = ring * ((ang > -np.pi / 2) & (ang < np.pi / 3))
+    alpha = np.maximum(ring * 0.35, arc)
+    rgba = np.dstack([np.full((n, n), 255.0)] * 3 + [alpha * 255]).astype(np.uint8)
+    subprocess.run([tool("ffmpeg"), "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{n}x{n}",
+                    "-i", "-", "-frames:v", "1", str(out)], input=rgba.tobytes(), check=True)
+    return out
 
 
 def sfx_inputs(proj: Project) -> list[tuple[Path, float, float]]:
@@ -76,6 +97,9 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
         ins += ["-i", str(t)]
     for f, _, _ in sfx:
         ins += ["-i", str(f)]
+    spin = [g for g in grey if g.get("spinner")]
+    if spin:
+        ins += ["-loop", "1", "-framerate", str(FPS), "-i", str(spinner_png(proj.work))]
 
     v = "[0:v]"
     graph = []
@@ -83,6 +107,12 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
         cond = "+".join(f"between(t,{g['a']},{g['b']})" for g in grey)
         graph.append(f"{v}hue=s=0:enable='{cond}'[vg]")
         v = "[vg]"
+    if spin:
+        k = 1 + len(tracks) + len(sfx)
+        cond = "+".join(f"between(t,{g['a']},{g['b']})" for g in spin)
+        graph.append(f"[{k}:v]format=rgba,rotate=a=t*5:c=none[sp]")
+        graph.append(f"{v}[sp]overlay=(W-w)/2:(H-h)/2-200:shortest=1:enable='{cond}'[vs]")
+        v = "[vs]"
     for i in range(len(tracks)):
         graph.append(f"{v}[{i + 1}:v]overlay=0:0:format=auto:eof_action=pass[vo{i}]")
         v = f"[vo{i}]"
