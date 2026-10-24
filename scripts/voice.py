@@ -18,6 +18,31 @@ log = logging.getLogger("voice")
 URL = "https://api.elevenlabs.io/v1/audio-isolation"
 
 
+def envelope(path: Path) -> "numpy.ndarray":
+    """Loudness envelope, 10 ms steps."""
+    import subprocess
+
+    import numpy as np
+
+    raw = subprocess.run([tool("ffmpeg"), "-v", "error", "-i", str(path), "-ac", "1", "-ar", "16000", "-f", "s16le",
+                          "-"], capture_output=True, check=True).stdout
+    x = np.frombuffer(raw, np.int16).astype(float)
+    n = len(x) // 160
+    return np.sqrt((x[:n * 160].reshape(n, 160) ** 2).mean(1))
+
+
+def offset(original: Path, isolated: Path) -> float:
+    """Seconds to delay the isolated voice to match the original (negative = cut its start)."""
+    import numpy as np
+
+    a, b = envelope(original), envelope(isolated)
+    n = min(len(a), len(b))
+    a, b = a[:n], b[:n]
+    best = max(range(-20, 21), key=lambda k: np.corrcoef(a[max(0, k):n + min(0, k)],
+                                                         b[max(0, -k):n - max(0, k)])[0, 1])
+    return best / 100
+
+
 def isolate(proj: Project) -> Path:
     """Send the voice of the clean cut to ElevenLabs, save the clean voice aligned to the video."""
     import requests
@@ -40,9 +65,12 @@ def isolate(proj: Project) -> Path:
             raise SystemExit(f"ElevenLabs voice isolation failed: HTTP {r.status_code} {r.text[:300]}")
         got.write_bytes(r.content)
         total = duration(clean)
-        # same length as the video: pad with silence or trim, so the lips stay in sync
-        run([tool("ffmpeg"), "-y", "-i", str(got), "-af", f"apad,atrim=0:{total:.3f}", "-ar", "48000", "-ac", "1",
-             str(out)])
+        shift = offset(src, got)
+        # same start and length as the video (pad with silence, trim), so the lips stay in sync
+        align = f"adelay={int(shift * 1000)}" if shift > 0 else f"atrim=start={-shift:.3f},asetpts=PTS-STARTPTS"
+        run([tool("ffmpeg"), "-y", "-i", str(got), "-af", f"{align},apad,atrim=0:{total:.3f}", "-ar", "48000",
+             "-ac", "1", str(out)])
+        log.info("aligned by %+.0f ms", shift * 1000)
     log.info("clean voice -> %s", out)
     return out
 
