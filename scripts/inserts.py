@@ -20,7 +20,7 @@ import shutil
 from pathlib import Path
 from statistics import median
 
-from common import FPS, H, W, Project, duration, run, setup_logging, tool
+from shared import FPS, H, W, Project, duration, run, setup_logging, tool
 
 log = logging.getLogger("inserts")
 POP = (0.8, 0.94, 1.0)

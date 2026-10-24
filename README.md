@@ -76,7 +76,7 @@ git clone https://github.com/DianaMarshrut/labops-montage ~/.claude/skills/labop
 cd ~/.claude/skills/labops-montage
 pip install -r requirements.txt
 python3 -m playwright install chromium
-python3 scripts/selftest.py --keep
+python3 scripts/doctor.py --keep
 ```
 
 Самопроверка собирает тестовый ролик на 5 секунд. Если он собрался, всё работает.
@@ -133,7 +133,7 @@ python3 scripts/selftest.py --keep
 
 - `SKILL.md`: инструкция для Claude, все шаги и команды.
 - `scripts/`: скрипты монтажа. У каждого есть `--help`.
-- `assets/sfx/`: наши звуковые эффекты (скрипт синтеза: `scripts/sfx_synth.py`).
+- `assets/sfx/`: наши звуковые эффекты (скрипт синтеза: `scripts/sounds_make.py`).
 - Шрифты субтитров подключаются из Google Fonts (лицензия SIL OFL).
 
 ## Лицензия

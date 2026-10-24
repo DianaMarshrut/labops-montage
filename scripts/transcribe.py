@@ -17,7 +17,7 @@ import logging
 import tempfile
 from pathlib import Path
 
-from common import Word, key, run, save_words, setup_logging, tool
+from shared import Word, key, run, save_words, setup_logging, tool
 
 log = logging.getLogger("transcribe")
 

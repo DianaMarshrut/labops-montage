@@ -1,15 +1,15 @@
 """Analyse how a blogger edits reels and pack the style into its own skill.
 
-  python3 reference.py fetch <folder> <instagram-url | video file> [...]
+  python3 blogger.py fetch <folder> <instagram-url | video file> [...]
       Instagram via HikerAPI (HIKERAPI_KEY, about $0.001 per request), any other link via yt-dlp
       if installed, local files are copied -> <folder>/raw/NN.mp4
-  python3 reference.py measure <folder> [--lang ru]
+  python3 blogger.py measure <folder> [--lang ru]
       per reel: length, cuts (scene changes), average shot, cuts per 10 s, first cut, words per minute,
       loudness; one frame per second as a sheet -> <folder>/sheets/NN.jpg, <folder>/metrics.md
   (then Claude looks at every sheet and writes <folder>/style.md: hook, framing and layouts, captions
    (font, case, size, position, accents), inserts and graphics, sound effects, pace, CTA -
    techniques only, never the blogger's frames, music or text)
-  python3 reference.py skill <folder> --handle <name> [--dest ~/.claude/skills]
+  python3 blogger.py skill <folder> --handle <name> [--dest ~/.claude/skills]
       -> <dest>/montage-<name>/SKILL.md (+ style.md, metrics.md): "смонтируй в стиле <name>" then
       edits with labops-montage following that style
 """
@@ -26,10 +26,10 @@ from pathlib import Path
 
 import requests
 
-from common import duration, key, run, setup_logging, tool
+from shared import duration, key, run, setup_logging, tool
 from transcribe import transcribe
 
-log = logging.getLogger("reference")
+log = logging.getLogger("blogger")
 HIKER = "https://api.instagrapi.com/v2/media/info/by/code"
 
 
@@ -140,7 +140,7 @@ description: Edit a talking-head reel in the style of {handle}. Use when the use
 
 1. Read `style.md` and `metrics.md` in this folder: they are the measured style (techniques only).
 2. Edit with the `labops-montage` skill, all its steps and OK gates, with these settings:
-   - pace: match the median shot length and cuts per 10 s from metrics.md (prep.py cut --speed, plan beats);
+   - pace: match the median shot length and cuts per 10 s from metrics.md (trim.py cut --speed, plan beats);
    - captions, accents, layouts, inserts, sound and video effects, hook and CTA: as described in style.md,
      picked from the labops-montage catalogues (closest numbers), shown to the user on their own frame;
 3. Never copy the blogger's frames, music or text.

@@ -17,7 +17,7 @@ import urllib.request
 from pathlib import Path
 from statistics import median
 
-from common import FPS, H, W, Project, run, setup_logging, tool
+from shared import FPS, H, W, Project, run, setup_logging, tool
 
 log = logging.getLogger("faces")
 YUNET_URL = ("https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/"

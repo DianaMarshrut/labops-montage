@@ -29,7 +29,7 @@ import re
 import sys
 from pathlib import Path
 
-from common import Project, Word, duration, load_words, setup_logging
+from shared import Project, Word, duration, load_words, setup_logging
 from effects import KINDS as FX_KINDS
 
 log = logging.getLogger("plan")
@@ -175,7 +175,7 @@ def check(proj: Project) -> int:
 
 
 def apply(proj: Project) -> None:
-    """plan.json -> files read by frame.py, inserts.py and finish.py."""
+    """plan.json -> files read by frame.py, inserts.py and assemble.py."""
     if check(proj):
         sys.exit("fix the errors in plan.json first")
     beats = json.loads((proj.root / "plan.json").read_text())["beats"]

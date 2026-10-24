@@ -1,11 +1,11 @@
 """Check a rendered reel before sending it -> printed report, exit 1 on errors.
 
-  python3 qa.py <project> [video] [--engine auto]
+  python3 verify.py <project> [video] [--engine auto]
 Default video: the newest file in out/. Checks:
   E  format 1080x1920 (final) or 720x1280 (preview), 30 fps, has sound
   E  voice loudness -16..-13 LUFS, true peak below -1 dBTP
   E  words lost at the joins: the render is recognised again and compared with work/words.json;
-     a missing word within 0.4 s of a cut means the cut clipped it (re-run prep.py cut with a larger
+     a missing word within 0.4 s of a cut means the cut clipped it (re-run trim.py cut with a larger
      --pause or move the join); missing words elsewhere are only warnings (recognition varies)
   E  captions present (work/captions.json not empty) for a talking-head reel
   W  first visual change later than 1.5 s
@@ -21,10 +21,10 @@ import re
 import sys
 from pathlib import Path
 
-from common import Project, load_words, probe, run, setup_logging, tool
+from shared import Project, load_words, probe, run, setup_logging, tool
 from transcribe import transcribe
 
-log = logging.getLogger("qa")
+log = logging.getLogger("verify")
 
 
 def norm(t: str) -> str:
@@ -101,7 +101,7 @@ def main() -> None:
     else:
         i, peak = loud(video)
         if not -16 <= i <= -13:
-            err.append(f"loudness {i:.1f} LUFS, expected -16..-13 (finish.py --target)")
+            err.append(f"loudness {i:.1f} LUFS, expected -16..-13 (assemble.py --target)")
         if peak > -1:
             err.append(f"true peak {peak:.1f} dBTP, expected below -1")
     caps = proj.work / "captions.json"

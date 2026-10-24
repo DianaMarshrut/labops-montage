@@ -23,7 +23,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from common import FPS, H, W, Project, Word, load_words, run, setup_logging, tool
+from shared import FPS, H, W, Project, Word, load_words, run, setup_logging, tool
 
 log = logging.getLogger("subtitles")
 SHADOW = "text-shadow:0 4px 22px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.4);"

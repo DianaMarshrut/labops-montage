@@ -1,6 +1,6 @@
-"""Frame sheet: one still per beat, labelled -> out/snap.jpg. Seconds, not minutes: look before the final render.
+"""Frame sheet: one still per beat, labelled -> out/frames.jpg. Seconds, not minutes: look before the final render.
 
-  python3 snap.py <project> [video] [--at 0.5,4.2]
+  python3 framesheet.py <project> [video] [--at 0.5,4.2]
 Default video: out/preview.mp4; default times: middle of every beat of plan.json, else one per second.
 Look for: empty or repeated framing, text cut off at the edges, inserts over the face, unreadable captions.
 """
@@ -13,9 +13,9 @@ import math
 import tempfile
 from pathlib import Path
 
-from common import Project, duration, run, setup_logging, tool
+from shared import Project, duration, run, setup_logging, tool
 
-log = logging.getLogger("snap")
+log = logging.getLogger("framesheet")
 
 
 def times(proj: Project, video: Path) -> list[float]:
@@ -51,7 +51,7 @@ def main() -> None:
     proj = Project(a.project)
     video = a.video or proj.out / "preview.mp4"
     at = [float(x) for x in a.at.split(",") if x] or times(proj, video)
-    sheet(video, at, proj.out / "snap.jpg")
+    sheet(video, at, proj.out / "frames.jpg")
 
 
 if __name__ == "__main__":

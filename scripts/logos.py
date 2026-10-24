@@ -16,7 +16,7 @@ from pathlib import Path
 
 import requests
 
-from common import setup_logging
+from shared import setup_logging
 
 log = logging.getLogger("logos")
 UA = {"User-Agent": "labops-montage/1.0 (reels editing skill)"}

@@ -28,7 +28,7 @@ agent, the user does not see your terminal: everything they must see goes into t
    - `HIKERAPI_KEY` - download Instagram reels for style analysis (hikerapi.com, about $0.001 per request).
      Without it the user sends reference videos as files.
    - `ELEVENLABS_API_KEY` - optional, more sound effects (elevenlabs.io, the free plan has monthly credits).
-4. `python3 scripts/selftest.py --keep` -> everything OK, show the user the test preview.
+4. `python3 scripts/doctor.py --keep` -> everything OK, show the user the test preview.
 
 ## 1. Files
 
@@ -51,11 +51,11 @@ editing they like, (c) from scratch (no footage: graphics, screenshots, voice). 
 
 **Step 2. Prepare.**
 ```
-python3 scripts/prep.py init <raw.mov> <project> --lang ru --prompt "names, products, terms"
+python3 scripts/trim.py init <raw.mov> <project> --lang ru --prompt "names, products, terms"
 ```
 Read `work/phrases.txt`: find retakes and slips (keep the last good take), then
 ```
-python3 scripts/prep.py cut <project> --drop 12.3-15.8,40.1-41.0 --speed 1.2
+python3 scripts/trim.py cut <project> --drop 12.3-15.8,40.1-41.0 --speed 1.2
 ```
 Speed: 1.2 for the whole reel, 1.3 for passing parts. Fix recognition typos in `work/words.json`
 (captions are made from it; names spelled exactly).
@@ -84,7 +84,7 @@ python3 scripts/effects.py demo <project>/work/clean.mp4 effects.mp4   # the sam
 ```
 To the user say "how the frame is arranged" (not "layout"), and explain "glitch" (colour noise like a broken TV).
 Sounds: play `assets/sfx/*.wav` (click, tick, pop, blip, whoosh, swipe, riser, hit, ding) or generate more
-with `scripts/sfx_gen.py` (ElevenLabs, ask first: it spends credits). Save the picks in `project.json`;
+with `scripts/sounds_ai.py` (ElevenLabs, ask first: it spends credits). Save the picks in `project.json`;
 next time the user can say "captions 3, accent 1".
 
 **Step 5. Build.**
@@ -95,20 +95,20 @@ python3 scripts/logos.py <project>/assets Claude Notion   # official logo candid
 python3 scripts/faces.py track <project> && python3 scripts/faces.py frame <project>
 python3 scripts/subtitles.py render <project> --style <id> --accent "слово1,слово2" --accent-look <N>
 python3 scripts/inserts.py <project>
-python3 scripts/finish.py <project>              # out/preview.mp4, 720p
-python3 scripts/snap.py <project>                # out/snap.jpg: look at it before sending
-python3 scripts/qa.py <project>                  # fix every ERROR
+python3 scripts/assemble.py <project>              # out/preview.mp4, 720p
+python3 scripts/framesheet.py <project>                # out/frames.jpg: look at it before sending
+python3 scripts/verify.py <project>                  # fix every ERROR
 ```
 Send the preview with a one-line summary.
 
 **Step 6. Edits [OK].** The user sends edits. Before the new version, check it against their list point by
 point and write what was done for each. Edit the same project (no "v2" copies). After their OK:
-`python3 scripts/finish.py <project> --final --name <slug>` -> `qa.py` -> upload to Google Drive.
+`python3 scripts/assemble.py <project> --final --name <slug>` -> `verify.py` -> upload to Google Drive.
 
 ## 3. Editing rules (always)
 
-- Cut once, only in pauses between phrases; `prep.py` follows the real end of the sound and keeps a natural
-  pause (~0.2 s). After any re-cut run `faces.py track` again and `qa.py` (it re-recognises the render and
+- Cut once, only in pauses between phrases; `trim.py` follows the real end of the sound and keeps a natural
+  pause (~0.2 s). After any re-cut run `faces.py track` again and `verify.py` (it re-recognises the render and
   flags words clipped at joins).
 - Sound: no music (the user adds it in Instagram at publishing); gentle denoise and one static gain to about
   -15 LUFS; never a loudness compressor (it lifts room noise in every pause).
@@ -123,12 +123,12 @@ point and write what was done for each. Edit the same project (no "v2" copies). 
 ## 4. Style of a blogger (format b)
 
 ```
-python3 scripts/reference.py fetch <style-folder> <reel links or files>
-python3 scripts/reference.py measure <style-folder>
+python3 scripts/blogger.py fetch <style-folder> <reel links or files>
+python3 scripts/blogger.py measure <style-folder>
 ```
 Look at every `sheets/NN.jpg` and `metrics.md`, write `<style-folder>/style.md`: hook, framing and layouts,
 captions (font, case, size, position, accents), inserts and graphics, sound effects, pace, CTA - techniques
-only. Then `python3 scripts/reference.py skill <style-folder> --handle <name>` makes a skill
+only. Then `python3 scripts/blogger.py skill <style-folder> --handle <name>` makes a skill
 `montage-<name>`: "смонтируй в стиле <name>" edits with these settings.
 
 ## 5. When something breaks
@@ -139,7 +139,7 @@ only. Then `python3 scripts/reference.py skill <style-folder> --handle <name>` m
 | Result does not send to the chat | Over 50 MB: send the 720p preview, the final to Google Drive |
 | Instagram reel does not download | HIKERAPI_KEY missing or private account: ask for the file |
 | Process killed in the middle of a render | Out of memory: one render at a time, preview 720p first |
-| A word is clipped at a join (`qa.py`) | `prep.py cut` with a larger `--pause`, or move the drop range |
+| A word is clipped at a join (`verify.py`) | `trim.py cut` with a larger `--pause`, or move the drop range |
 | Captions show a wrong word | Fix `work/words.json`, run `subtitles.py render` again |
 | Insert covers the face | Run `faces.py track` after the last cut; use layout `full` or `split` |
 | Captions font looks plain | No internet for Google Fonts during render: check the connection |

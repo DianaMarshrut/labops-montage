@@ -1,10 +1,10 @@
 """Final assembly: clean cut + overlay tracks + grey moments + clean voice + sound effects -> out/.
 
-  python3 finish.py <project> [--final] [--target -15] [--no-denoise] [--name slug]
+  python3 assemble.py <project> [--final] [--target -15] [--no-denoise] [--name slug]
       --final   1080x1920 high quality (out/<name>.mp4); default is a 720p preview (out/preview.mp4)
 
 Reads from the project:
-  work/clean.mp4              picture and voice after prep.py cut
+  work/clean.mp4              picture and voice after trim.py cut
   work/framed.mp4             the same with jump zooms from faces.py frame (used instead when present)
   work/subs.mov               caption track from subtitles.py (optional)
   work/overlays/*.mov         other transparent tracks (graphics), applied in name order (optional)
@@ -28,9 +28,9 @@ import subprocess
 from pathlib import Path
 
 import effects
-from common import FPS, SKILL_DIR, Project, duration, run, setup_logging, tool
+from shared import FPS, SKILL_DIR, Project, duration, run, setup_logging, tool
 
-log = logging.getLogger("finish")
+log = logging.getLogger("assemble")
 DENOISE = "highpass=f=70,afftdn=nr=6:nf=-55"
 
 
@@ -84,7 +84,7 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
     """Build the preview or the final file."""
     clean = proj.work / "clean.mp4"
     if not clean.exists():
-        raise SystemExit("run prep.py cut first")
+        raise SystemExit("run trim.py cut first")
     total = duration(clean)
     voice_chain = DENOISE if denoise else "anull"
     gain = target - loudness(clean, voice_chain)
@@ -137,7 +137,7 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
                  "alimiter=limit=0.79:level=false[a]")
 
     out = proj.out / (f"{name}.mp4" if final else "preview.mp4")
-    script = proj.work / "finish.filter"
+    script = proj.work / "assemble.filter"
     script.write_text(";".join(graph))
     venc = ["-c:v", "libx264", "-preset", "slow", "-crf", "17"] if final else \
         ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23"]

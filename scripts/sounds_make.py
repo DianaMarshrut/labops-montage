@@ -1,6 +1,6 @@
 """Procedural sound effects (numpy only, free, deterministic) -> assets/sfx/<kind>.wav.
 
-  python3 sfx_synth.py [--out <folder>] [kind ...]
+  python3 sounds_make.py [--out <folder>] [kind ...]
 Kinds: click, tick, pop, blip, whoosh, swipe, riser, hit, ding. Without kinds, all are written.
 Simple electronic sounds come out well; realistic ones (camera shutter, keyboard, glass) do not:
 generate those with ElevenLabs or record them.
@@ -15,10 +15,10 @@ from typing import Callable
 
 import numpy as np
 
-from common import SKILL_DIR, setup_logging
+from shared import SKILL_DIR, setup_logging
 
 SR = 48000
-log = logging.getLogger("sfx_synth")
+log = logging.getLogger("sounds_make")
 rng = np.random.default_rng(7)
 
 

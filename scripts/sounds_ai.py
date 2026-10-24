@@ -1,8 +1,8 @@
 """More sound effects with ElevenLabs Sound Effects (your own key; the free plan has monthly credits).
 
-  python3 sfx_gen.py --list
-  python3 sfx_gen.py shutter typing                  ready kinds below -> assets/sfx/<kind>.mp3
-  python3 sfx_gen.py --name cash --prompt "cash register ding, short, clean" [--seconds 1.0]
+  python3 sounds_ai.py --list
+  python3 sounds_ai.py shutter typing                  ready kinds below -> assets/sfx/<kind>.mp3
+  python3 sounds_ai.py --name cash --prompt "cash register ding, short, clean" [--seconds 1.0]
 Needs ELEVENLABS_API_KEY (environment or ~/.config/labops-montage/keys.env). Every call spends credits:
 ask the user before generating. Generated files are the user's own sounds.
 """
@@ -14,9 +14,9 @@ from pathlib import Path
 
 import requests
 
-from common import SKILL_DIR, key, setup_logging
+from shared import SKILL_DIR, key, setup_logging
 
-log = logging.getLogger("sfx_gen")
+log = logging.getLogger("sounds_ai")
 URL = "https://api.elevenlabs.io/v1/sound-generation"
 READY = {
     "shutter": ("camera shutter click, single, dry, close mic", 0.6),

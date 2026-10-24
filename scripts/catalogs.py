@@ -7,7 +7,7 @@
   (subtitles: python3 subtitles.py sheet <frame.jpg> <out.png>)
 
 Accent looks are used by subtitles.py render --accent-look N: they replace the style's own accent (.e).
-Grey moment: 1 = black-and-white, 2 = black-and-white + loading spinner (finish.py reads work/grey.json).
+Grey moment: 1 = black-and-white, 2 = black-and-white + loading spinner (assemble.py reads work/grey.json).
 Layouts (how the frame is arranged) map to plan.json: 1 face close = zoom 1.6, 2 card = insert layout
 "card", 3 full = "full", 4 split = "split".
 Effects map to plan.json "fx": 1 shake, 2 glitch, 3 flash, 4 freeze. A still frame only hints at motion:
@@ -21,7 +21,7 @@ import html
 import logging
 from pathlib import Path
 
-from common import setup_logging
+from shared import setup_logging
 from effects import KINDS as FX_KINDS
 
 log = logging.getLogger("catalogs")

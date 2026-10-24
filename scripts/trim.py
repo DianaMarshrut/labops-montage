@@ -1,9 +1,9 @@
 """Raw talking-head take -> clean cut with word timings.
 
-  python3 prep.py init <raw.mov> <project> [--lang ru] [--engine auto] [--prompt "Claude, labopsai"]
+  python3 trim.py init <raw.mov> <project> [--lang ru] [--engine auto] [--prompt "Claude, labopsai"]
       vertical 1080x1920 @30 (work/source.mp4), word timings (work/words.raw.json),
       numbered phrases for review (work/phrases.txt)
-  python3 prep.py cut <project> [--drop 3.2-7.9,20.1-22.4] [--max-gap 0.35] [--pause 0.2] [--speed 1.2]
+  python3 trim.py cut <project> [--drop 3.2-7.9,20.1-22.4] [--max-gap 0.35] [--pause 0.2] [--speed 1.2]
       cuts only in pauses between phrases (edges follow the real end of the sound, not Whisper word ends),
       keeps a natural pause of --pause seconds, drops the given source ranges (retakes, slips),
       applies the speed -> work/clean.mp4, work/words.json (clean timeline), work/edl.json
@@ -22,10 +22,10 @@ from pathlib import Path
 
 import numpy as np
 
-from common import FPS, H, W, Project, Word, duration, load_words, run, save_words, setup_logging, tool
+from shared import FPS, H, W, Project, Word, duration, load_words, run, save_words, setup_logging, tool
 from transcribe import transcribe
 
-log = logging.getLogger("prep")
+log = logging.getLogger("trim")
 ASR = 16000  # sample rate of the analysis audio
 
 
@@ -183,7 +183,7 @@ def cut(proj: Project, drop: str, max_gap: float, pause: float, speed: float) ->
     """Build the clean cut from the normalised source."""
     src = proj.work / "source.mp4"
     if not src.exists():
-        raise SystemExit("run `prep.py init` first")
+        raise SystemExit("run `trim.py init` first")
     words = load_words(proj.work / "words.raw.json")
     total = duration(src)
     segs = plan_segments(words, parse_ranges(drop), load_audio(src), total, max_gap, pause)

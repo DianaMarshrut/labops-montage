@@ -1,4 +1,4 @@
-"""Video effects on the picture: shake, glitch, flash, freeze frame (finish.py reads work/fx.json).
+"""Video effects on the picture: shake, glitch, flash, freeze frame (assemble.py reads work/fx.json).
 
   python3 effects.py demo <video> <out.mp4> [--start 2]
       8 seconds of the user's video with every effect in turn, numbered as in the catalogue
@@ -18,7 +18,7 @@ import logging
 import tempfile
 from pathlib import Path
 
-from common import FPS, H, W, run, setup_logging, tool
+from shared import FPS, H, W, run, setup_logging, tool
 
 log = logging.getLogger("effects")
 # kind -> (catalogue name, default length in seconds)

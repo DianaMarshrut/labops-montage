@@ -1,6 +1,6 @@
 """Self-test after installation: tools, Python packages, keys, and a 5-second synthetic reel end to end.
 
-  python3 selftest.py [--keep]
+  python3 doctor.py [--keep]
 Builds a test project in a temporary folder (no API keys needed): coloured video with a tone as the
 "voice", known words, captions, a text insert, a grey moment with spinner, a sound effect and the
 four video effects -> preview.
@@ -18,9 +18,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from common import Project, Word, key, run, save_words, setup_logging, tool
+from shared import Project, Word, key, run, save_words, setup_logging, tool
 
-log = logging.getLogger("selftest")
+log = logging.getLogger("doctor")
 results: list[tuple[bool, str]] = []
 
 
@@ -74,8 +74,8 @@ def keys() -> None:
 
 
 def synthetic(root: Path) -> bool:
-    """5-second reel through subtitles, inserts and finish."""
-    from finish import finish
+    """5-second reel through subtitles, inserts and assembly."""
+    from assemble import finish
     from inserts import build
     from subtitles import render
 
@@ -98,7 +98,7 @@ def synthetic(root: Path) -> bool:
     steps = [("captions (subtitles.py)", lambda: render(proj, "montserrat-caps", {"скилла"}, 1250, "lower",
                                                          3, 18, True, 1)),
              ("inserts (inserts.py)", lambda: build(proj, "#8B5CF6")),
-             ("assembly (finish.py)", lambda: finish(proj, False, -15.0, True, "selftest"))]
+             ("assembly (assemble.py)", lambda: finish(proj, False, -15.0, True, "selftest"))]
     for name, fn in steps:
         try:
             fn()
