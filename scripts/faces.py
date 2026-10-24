@@ -4,6 +4,9 @@
   python3 faces.py frame <project> [--face-y 0.40]
       applies work/zooms.json (from plan.py apply): every beat cropped around the face with its zoom
       (1.0 wide, 1.3 medium, 1.6 close), face centre at --face-y of the height -> work/framed.mp4
+  python3 faces.py frame <project> --smooth 0.5 [--drift 0.03]
+      soft zooms instead of jumps: every change of zoom and face centre eases in over --smooth seconds,
+      and each beat slowly pushes in by --drift (0.03 = 3 %); looks calmer on close-ups
 
 Detector: OpenCV YuNet (model downloaded once to ~/.cache/labops-montage, about 0.3 MB); if the download
 is impossible, the Haar cascade bundled with OpenCV. Run `track` again after every re-cut.
@@ -108,6 +111,56 @@ def frame(proj: Project, face_y: float) -> None:
     log.info("framed: %d beats -> %s", len(beats), proj.work / "framed.mp4")
 
 
+def smooth_frame(proj: Project, face_y: float, ease: float, drift: float) -> None:
+    """Like frame(), but zoom and face centre glide between beats (smoothstep) instead of jumping."""
+    import subprocess
+
+    import cv2
+    import numpy as np
+
+    rows = json.loads((proj.work / "faces.json").read_text())
+    beats = json.loads((proj.work / "zooms.json").read_text())
+    targets = [(z["zoom"], *centre(rows, z["a"], z["b"])) for z in beats]
+    src = proj.work / "clean.mp4"
+    out = proj.work / "framed.mp4"
+    reader = subprocess.Popen([tool("ffmpeg"), "-v", "error", "-i", str(src), "-f", "rawvideo", "-pix_fmt", "bgr24",
+                               "-vf", f"scale={W}:{H},fps={FPS}", "-"], stdout=subprocess.PIPE)
+    writer = subprocess.Popen([tool("ffmpeg"), "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24",
+                               "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", str(src), "-map", "0:v",
+                               "-map", "1:a", "-c:v", "libx264", "-preset", "medium", "-crf", "16",
+                               "-pix_fmt", "yuv420p", "-c:a", "copy", "-shortest", str(out)], stdin=subprocess.PIPE)
+    state = targets[0]  # (zoom, fx, fy) at the end of the previous beat
+    i, start, n = 0, targets[0], 0
+    while True:
+        buf = reader.stdout.read(W * H * 3)
+        if len(buf) < W * H * 3:
+            break
+        t = n / FPS
+        while i + 1 < len(beats) and t >= beats[i + 1]["a"]:
+            i += 1
+            start = state
+        a, b = beats[i]["a"], beats[i]["b"]
+        k = min(1.0, (t - a) / ease) if i else 1.0
+        k = k * k * (3 - 2 * k)
+        tz, tx, ty = targets[i]
+        tz *= 1 + drift * min(1.0, (t - a) / max(b - a, 0.1))
+        z, fx, fy = (s0 + (s1 - s0) * k for s0, s1 in zip(start, (tz, tx, ty)))
+        state = (z, fx, fy)
+        cw, ch = W / z, H / z
+        x = min(max(fx * W - cw / 2, 0), W - cw)
+        y = min(max(fy * H - ch * face_y, 0), H - ch)
+        img = np.frombuffer(buf, np.uint8).reshape(H, W, 3)
+        m = np.float32([[z, 0, -x * z], [0, z, -y * z]])
+        writer.stdin.write(cv2.warpAffine(img, m, (W, H), flags=cv2.INTER_CUBIC,
+                                          borderMode=cv2.BORDER_REPLICATE).tobytes())
+        n += 1
+    writer.stdin.close()
+    reader.wait()
+    if writer.wait():
+        raise SystemExit("ffmpeg failed while writing framed.mp4")
+    log.info("framed (smooth %.2f s, drift %.0f %%): %d beats -> %s", ease, drift * 100, len(beats), out)
+
+
 def main() -> None:
     """CLI entry."""
     setup_logging()
@@ -117,9 +170,13 @@ def main() -> None:
     f = sub.add_parser("frame")
     f.add_argument("project", type=Path)
     f.add_argument("--face-y", type=float, default=0.40)
+    f.add_argument("--smooth", type=float, default=0.0, help="ease zoom changes over this many seconds")
+    f.add_argument("--drift", type=float, default=0.03, help="slow push-in per beat with --smooth")
     a = ap.parse_args()
     if a.cmd == "track":
         track(Project(a.project))
+    elif a.smooth > 0:
+        smooth_frame(Project(a.project), a.face_y, a.smooth, a.drift)
     else:
         frame(Project(a.project), a.face_y)
 

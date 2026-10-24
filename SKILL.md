@@ -109,7 +109,7 @@ next time the user can say "captions 3, accent 1".
 python3 scripts/plan.py check <project>          # fix every ERROR
 python3 scripts/plan.py apply <project>
 python3 scripts/logos.py <project>/assets Claude Notion   # official logo candidates: look, pick, put the path in plan.json
-python3 scripts/faces.py track <project> && python3 scripts/faces.py frame <project>
+python3 scripts/faces.py track <project> && python3 scripts/faces.py frame <project>   # --smooth 0.5: soft zooms, calmer on close-ups
 python3 scripts/subtitles.py render <project> --style <id> --accent "слово1,слово2" --accent-look <N>
 python3 scripts/voice.py <project>              # only if the user chose the studio voice (ElevenLabs, spends credits)
 python3 scripts/inserts.py <project>             # pictures, text, video, animated graphics (HyperFrames)

@@ -129,6 +129,9 @@ def plan_segments(words: list[Word], drop: list[Seg], audio: np.ndarray, total: 
     for k, r in enumerate(runs):
         prev_end = runs[k - 1][-1].end if k else 0.0
         next_start = runs[k + 1][0].start if k + 1 < len(runs) else total
+        # a dropped range is a hard wall: the edge search must not pull a dropped word back in
+        prev_end = max([prev_end] + [d.b for d in drop if prev_end <= d.b <= r[0].start + 0.01])
+        next_start = min([next_start] + [d.a for d in drop if r[-1].end - 0.01 <= d.a <= next_start])
         # look for the real silence at most 0.6 s from Whisper's edge; in steady room noise
         # there may be none, then keep 0.25 s past the word
         on = silence_before(mask, r[0].start, max(prev_end, r[0].start - 0.6))
@@ -137,7 +140,7 @@ def plan_segments(words: list[Word], drop: list[Seg], audio: np.ndarray, total: 
         off = silence_after(mask, r[-1].end, min(next_start, r[-1].end + 0.6))
         if off >= min(next_start, r[-1].end + 0.6):
             off = r[-1].end + 0.25
-        a = max(on - half, prev_end if k else 0.0)
+        a = max(on - half, prev_end)
         b = min(off + half, next_start)
         segs.append(Seg(round(max(a, 0.0), 3), round(min(b, total), 3)))
     for s, n in zip(segs, segs[1:]):  # never overlap
