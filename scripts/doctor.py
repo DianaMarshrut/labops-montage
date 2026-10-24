@@ -79,7 +79,7 @@ def synthetic(root: Path) -> bool:
     from inserts import build
     from subtitles import render
 
-    proj = Project(root / "selftest")
+    proj = Project(root / "test-reel")
     run([tool("ffmpeg"), "-y", "-f", "lavfi", "-i", "testsrc2=s=1080x1920:r=30:d=5", "-f", "lavfi",
          "-i", "sine=frequency=220:sample_rate=48000:duration=5", "-shortest", "-c:v", "libx264",
          "-pix_fmt", "yuv420p", "-c:a", "aac", str(proj.work / "clean.mp4")])
@@ -98,7 +98,7 @@ def synthetic(root: Path) -> bool:
     steps = [("captions (subtitles.py)", lambda: render(proj, "montserrat-caps", {"скилла"}, 1250, "lower",
                                                          3, 18, True, 1)),
              ("inserts (inserts.py)", lambda: build(proj, "#8B5CF6")),
-             ("assembly (assemble.py)", lambda: finish(proj, False, -15.0, True, "selftest"))]
+             ("assembly (assemble.py)", lambda: finish(proj, False, -15.0, True, "test-reel"))]
     for name, fn in steps:
         try:
             fn()
