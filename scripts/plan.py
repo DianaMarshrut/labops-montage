@@ -10,8 +10,10 @@
 plan.json = {"beats": [beat, ...]}; a beat:
   {"a": 0.0, "b": 2.1, "text": "...", "role": "hook|body|list|cta",
    "zoom": 1.0,                       1.0 wide, 1.3 medium, 1.6 close (jump zoom on the face)
-   "insert": null | {"kind": "image|logo|meme|screenshot|text", "src": "path or TODO: what to find",
-                     "layout": "card|full|split", "text": "for kind=text"},
+   "insert": null | {"kind": "image|logo|meme|screenshot|broll|text", "src": "path or TODO: what to find",
+                     "layout": "card|full|split|cover|stack", "text": "for kind=text"},
+                                       video src (meme, broll) plays muted; cover = clip over the whole frame;
+                                       stack = 2-3 clips one above the other, src is a list of files
    "accent": ["слово"],               caption accent words in this beat
    "sfx": null | "whoosh" | {"kind": "pop", "gain": -8, "at": 0.0},
    "grey": false,                      grey moment: true = black-and-white, "spinner" = plus loading icon

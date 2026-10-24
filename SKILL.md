@@ -1,6 +1,6 @@
 ---
 name: labops-montage
-description: Edit vertical talking-head reels (Instagram Reels, Shorts, TikTok) from raw phone footage - cut pauses and retakes, jump zooms on the face, captions from a catalogue, accents, inserts (logos, screenshots, memes, numbers), grey moments, video effects (shake, glitch, flash, freeze), sound effects, clean voice - with the user's OK at every key step. Also analyses a blogger's editing style from their reels and packs it into its own skill. Use when the user asks to edit/montage a reel or video, «смонтируй рилс», «смонтируй в стиле @...», «разбери монтаж блогера», or sends raw footage for a reel.
+description: Edit vertical talking-head reels (Instagram Reels, Shorts, TikTok) from raw phone footage - cut pauses and retakes, jump zooms on the face, captions from a catalogue, accents, inserts (logos, screenshots, memes found by the skill, numbers, the user's own clips), grey moments, video effects (shake, glitch, flash, freeze), sound effects, clean voice - with the user's OK at every key step. Also analyses a blogger's editing style from their reels and packs it into its own skill. Use when the user asks to edit/montage a reel or video, «смонтируй рилс», «смонтируй в стиле @...», «разбери монтаж блогера», or sends raw footage for a reel.
 ---
 
 # labops-montage
@@ -69,8 +69,13 @@ send the user `plan.md` in short: length and pace, hook (first 2-3 s), what is c
 are, grey moments (where the person slips or pauses, black-and-white, funny), sound and video effects, CTA.
 Effects (`"fx"` in a beat): shake on a strong word, glitch on a joke, flash on a new thought, freeze for a
 pause; not more often than once per 3 s.
-Memes: the skill has no meme library. Propose the moments where a meme fits and ask the user for the pictures
-(we use the Telegram channel @membeztexta: memes without captions), or use pictures they send.
+Memes: `python3 scripts/memes.py fetch <project>/memes` (public page of @membeztexta, no key), then
+`memes.py sheet <project>/memes memes.png` (numbered previews) and `memes.py get <project>/memes N` (downloads the
+file). Propose a meme for a phrase by meaning or let the user pick a number; agree it in the passport. In plan.json:
+`{"kind": "meme", "src": "<file>", "layout": "full|card|split"}`; video memes play muted for the beat.
+The user's own clips (b-roll) only when the user sent them and asked: `{"kind": "broll", "src": "<file>",
+"layout": "cover"}` (whole frame, the voice goes on) or `"src": [a, b, c], "layout": "stack"` (2-3 clips one above
+the other).
 
 **Step 4. Catalogue [OK].** Take a frame of their video (`ffmpeg -ss 3 -i <project>/work/clean.mp4 -frames:v 1 frame.jpg`)
 and show numbered variants on it; the user answers with numbers. Do not choose for them.
