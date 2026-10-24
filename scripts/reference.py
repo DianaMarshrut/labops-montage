@@ -141,7 +141,7 @@ description: Edit a talking-head reel in the style of {handle}. Use when the use
 1. Read `style.md` and `metrics.md` in this folder: they are the measured style (techniques only).
 2. Edit with the `labops-montage` skill, all its steps and OK gates, with these settings:
    - pace: match the median shot length and cuts per 10 s from metrics.md (prep.py cut --speed, plan beats);
-   - captions, accents, layouts, inserts, sound effects, hook and CTA: as described in style.md,
+   - captions, accents, layouts, inserts, sound and video effects, hook and CTA: as described in style.md,
      picked from the labops-montage catalogues (closest numbers), shown to the user on their own frame;
 3. Never copy the blogger's frames, music or text.
 """)
