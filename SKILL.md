@@ -69,10 +69,12 @@ send the user `plan.md` in short: length and pace, hook (first 2-3 s), what is c
 are, grey moments (where the person slips or pauses, black-and-white, funny), sound and video effects, CTA.
 Effects (`"fx"` in a beat): shake on a strong word, glitch on a joke, flash on a new thought, freeze for a
 pause; not more often than once per 3 s.
-Memes: `python3 scripts/memes.py fetch <project>/memes` (public page of @membeztexta, no key), then
-`memes.py sheet <project>/memes memes.png` (numbered previews) and `memes.py get <project>/memes N` (downloads the
-file). Propose a meme for a phrase by meaning or let the user pick a number; agree it in the passport. In plan.json:
-`{"kind": "meme", "src": "<file>", "layout": "full|card|split"}`; video memes play muted for the beat.
+Memes: pick them yourself, never ask the user to send memes. The user only says where memes go (or you propose
+the places in the passport). `python3 scripts/memes.py fetch <project>/memes` (public page of @membeztexta, no
+key), look at `memes.py sheet <project>/memes memes.png`, choose by the meaning of the phrase, download with
+`memes.py get <project>/memes N`, show the chosen memes (still frames) in the passport; replace any the user
+dislikes. No memes with brands or logos. In plan.json: `{"kind": "meme", "src": "<file>", "layout":
+"full|card|split"}`; video memes play muted for the beat.
 The user's own clips (b-roll) only when the user sent them and asked: `{"kind": "broll", "src": "<file>",
 "layout": "cover"}` (whole frame, the voice goes on) or `"src": [a, b, c], "layout": "stack"` (2-3 clips one above
 the other).
