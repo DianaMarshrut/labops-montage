@@ -91,7 +91,7 @@ the other).
 **Step 4. Catalogue [OK].** Take a frame of their video (`ffmpeg -ss 3 -i <project>/work/clean.mp4 -frames:v 1 frame.jpg`)
 and show numbered variants on it; the user answers with numbers. Do not choose for them.
 ```
-python3 scripts/subtitles.py sheet frame.jpg subs.png        # 24 caption styles
+python3 scripts/subtitles.py sheet frame.jpg subs.png        # 25 caption styles
 python3 scripts/catalogs.py accents frame.jpg accents.png     # 8 accent looks
 python3 scripts/catalogs.py grey frame.jpg grey.png           # grey moments
 python3 scripts/catalogs.py layouts frame.jpg layouts.png     # how the frame is arranged during inserts

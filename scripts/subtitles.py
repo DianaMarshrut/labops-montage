@@ -104,6 +104,9 @@ STYLES: list[Style] = [
     Style("tektur-tech", "Тех-HUD", "Tektur:wght@700", "700 74px/1.15 Tektur",
           f".l{{border:3px solid #3DF5FF;color:#fff;padding:.02em .3em;background:rgba(0,20,30,.55);{CLONE}}}"
           ".e{color:#3DF5FF}"),
+    Style("mini-caps", "Мелкий капс", "Montserrat:wght@800", "800 46px/1.1 Montserrat",
+          ".c{color:#E8FF6A;text-transform:uppercase;letter-spacing:.02em;text-shadow:0 2px 6px rgba(0,0,0,.55)}"
+          ".e{color:#fff}"),
 ]
 BY_ID = {s.id: s for s in STYLES}
 CAVEAT = '<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">'
