@@ -1,6 +1,6 @@
 ---
 name: labops-montage
-description: Edit vertical talking-head reels (Instagram Reels, Shorts, TikTok) from raw phone footage - cut pauses and retakes, jump zooms on the face, captions from a catalogue, accents, inserts (logos, screenshots, memes, numbers), grey moments, sound effects, clean voice - with the user's OK at every key step. Also analyses a blogger's editing style from their reels and packs it into its own skill. Use when the user asks to edit/montage a reel or video, «смонтируй рилс», «смонтируй в стиле @...», «разбери монтаж блогера», or sends raw footage for a reel.
+description: Edit vertical talking-head reels (Instagram Reels, Shorts, TikTok) from raw phone footage - cut pauses and retakes, jump zooms on the face, captions from a catalogue, accents, inserts (logos, screenshots, memes, numbers), grey moments, video effects (shake, glitch, flash, freeze), sound effects, clean voice - with the user's OK at every key step. Also analyses a blogger's editing style from their reels and packs it into its own skill. Use when the user asks to edit/montage a reel or video, «смонтируй рилс», «смонтируй в стиле @...», «разбери монтаж блогера», or sends raw footage for a reel.
 ---
 
 # labops-montage
@@ -64,9 +64,13 @@ Speed: 1.2 for the whole reel, 1.3 for passing parts. Fix recognition typos in `
 ```
 python3 scripts/plan.py draft <project> --cta "пиши СЛОВО в комментарии"
 ```
-Edit `plan.draft.json` by meaning (hook, which inserts, grey moments, sounds), copy to `plan.json`, send the
-user `plan.md` in short: length and pace, hook (first 2-3 s), what is cut, where inserts/memes/logos are,
-grey moments (where the person slips or pauses, black-and-white, funny), sound effects, CTA.
+Edit `plan.draft.json` by meaning (hook, which inserts, grey moments, sounds, effects), copy to `plan.json`,
+send the user `plan.md` in short: length and pace, hook (first 2-3 s), what is cut, where inserts/memes/logos
+are, grey moments (where the person slips or pauses, black-and-white, funny), sound and video effects, CTA.
+Effects (`"fx"` in a beat): shake on a strong word, glitch on a joke, flash on a new thought, freeze for a
+pause; not more often than once per 3 s.
+Memes: the skill has no meme library. Propose the moments where a meme fits and ask the user for the pictures
+(we use the Telegram channel @membeztexta: memes without captions), or use pictures they send.
 
 **Step 4. Catalogue [OK].** Take a frame of their video (`ffmpeg -ss 3 -i <project>/work/clean.mp4 -frames:v 1 frame.jpg`)
 and show numbered variants on it; the user answers with numbers. Do not choose for them.
@@ -74,8 +78,11 @@ and show numbered variants on it; the user answers with numbers. Do not choose f
 python3 scripts/subtitles.py sheet frame.jpg subs.png        # 24 caption styles
 python3 scripts/catalogs.py accents frame.jpg accents.png     # 8 accent looks
 python3 scripts/catalogs.py grey frame.jpg grey.png           # grey moments
-python3 scripts/catalogs.py layouts frame.jpg layouts.png     # framing / insert layouts
+python3 scripts/catalogs.py layouts frame.jpg layouts.png     # how the frame is arranged during inserts
+python3 scripts/catalogs.py effects frame.jpg effects.png     # 4 video effects (still hint)
+python3 scripts/effects.py demo <project>/work/clean.mp4 effects.mp4   # the same effects moving, numbered
 ```
+To the user say "how the frame is arranged" (not "layout"), and explain "glitch" (colour noise like a broken TV).
 Sounds: play `assets/sfx/*.wav` (click, tick, pop, blip, whoosh, swipe, riser, hit, ding) or generate more
 with `scripts/sfx_gen.py` (ElevenLabs, ask first: it spends credits). Save the picks in `project.json`;
 next time the user can say "captions 3, accent 1".

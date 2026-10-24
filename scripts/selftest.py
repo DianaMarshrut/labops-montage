@@ -2,7 +2,8 @@
 
   python3 selftest.py [--keep]
 Builds a test project in a temporary folder (no API keys needed): coloured video with a tone as the
-"voice", known words, captions, a text insert, a grey moment with spinner, a sound effect -> preview.
+"voice", known words, captions, a text insert, a grey moment with spinner, a sound effect and the
+four video effects -> preview.
 Prints OK/FAIL per check and the path of the preview to look at (with --keep).
 """
 from __future__ import annotations
@@ -90,6 +91,10 @@ def synthetic(root: Path) -> bool:
         [{"a": 1.0, "b": 2.5, "kind": "text", "src": "", "layout": "card", "text": "100%"}]))
     (proj.work / "grey.json").write_text(json.dumps([{"a": 3.0, "b": 4.0, "spinner": True}]))
     (proj.work / "sfx.json").write_text(json.dumps([{"t": 1.0, "kind": "pop", "gain": -8}]))
+    (proj.work / "fx.json").write_text(json.dumps([{"a": 0.5, "b": 0.9, "kind": "shake"},
+                                                   {"a": 1.5, "b": 1.8, "kind": "glitch"},
+                                                   {"a": 2.6, "b": 2.9, "kind": "flash"},
+                                                   {"a": 4.2, "b": 4.8, "kind": "freeze"}]))
     steps = [("captions (subtitles.py)", lambda: render(proj, "montserrat-caps", {"скилла"}, 1250, "lower",
                                                          3, 18, True, 1)),
              ("inserts (inserts.py)", lambda: build(proj, "#8B5CF6")),

@@ -5,7 +5,7 @@
   python3 plan.py check <project>
       checks plan.json; exit 1 on errors (see RULES)
   python3 plan.py apply <project>
-      plan.json -> work/sfx.json, work/grey.json, work/zooms.json, work/inserts.json
+      plan.json -> work/sfx.json, work/grey.json, work/zooms.json, work/inserts.json, work/fx.json
 
 plan.json = {"beats": [beat, ...]}; a beat:
   {"a": 0.0, "b": 2.1, "text": "...", "role": "hook|body|list|cta",
@@ -14,7 +14,9 @@ plan.json = {"beats": [beat, ...]}; a beat:
                      "layout": "card|full|split", "text": "for kind=text"},
    "accent": ["слово"],               caption accent words in this beat
    "sfx": null | "whoosh" | {"kind": "pop", "gain": -8, "at": 0.0},
-   "grey": false}                      grey moment: true = black-and-white, "spinner" = plus loading icon
+   "grey": false,                      grey moment: true = black-and-white, "spinner" = plus loading icon
+   "fx": null | "shake" | {"kind": "flash", "at": 0.0, "len": 0.3}}
+                                       video effect: shake, glitch, flash, freeze (effects.py)
 Times are on the clean timeline (work/words.json). Draft beats with "TODO" in insert.src must be filled
 with a real file before apply.
 """
@@ -28,6 +30,7 @@ import sys
 from pathlib import Path
 
 from common import Project, Word, duration, load_words, setup_logging
+from effects import KINDS as FX_KINDS
 
 log = logging.getLogger("plan")
 ZOOMS = (1.3, 1.0, 1.6, 1.0)            # jump-zoom cycle on the talking head, starts close on the hook
@@ -40,10 +43,12 @@ RULES = """Checks:
   E  every beat is 0.4-6 s long
   E  no insert has src with TODO
   E  the first 1.5 s has a visual change (zoom change, insert or a cut)
+  E  every effect (fx) is one of: shake, glitch, flash, freeze
   W  no stretch of the same framing longer than 6 s
   W  at least one insert per 10 s
   W  the last beat has role cta
-  W  sound effects not denser than one per 1.5 s"""
+  W  sound effects not denser than one per 1.5 s
+  W  video effects not denser than one per 3 s"""
 
 
 def beats_from_words(words: list[Word]) -> list[list[Word]]:
@@ -63,6 +68,11 @@ def beats_from_words(words: list[Word]) -> list[list[Word]]:
         else:
             beats.append(cur)
     return beats
+
+
+def fx_kind(fx: str | dict) -> str:
+    """Effect kind of a beat's fx field."""
+    return fx if isinstance(fx, str) else fx.get("kind", "")
 
 
 def draft(proj: Project, cta: str) -> Path:
@@ -89,7 +99,7 @@ def draft(proj: Project, cta: str) -> Path:
         role = "hook" if g[0].start - groups[0][0].start < 1.5 else "cta" if i == len(groups) - 1 else "body"
         beats.append({"a": a, "b": b, "text": text, "role": role, "zoom": ZOOMS[i % len(ZOOMS)],
                       "insert": insert, "accent": (names or nums)[:1],
-                      "sfx": "whoosh" if insert else ("pop" if i == 0 else None), "grey": False})
+                      "sfx": "whoosh" if insert else ("pop" if i == 0 else None), "grey": False, "fx": None})
     if cta:
         beats[-1]["insert"] = {"kind": "text", "src": "", "layout": "card", "text": cta}
     out = proj.root / "plan.draft.json"
@@ -107,7 +117,8 @@ def passport(beats: list[dict], total: float, path: Path) -> None:
         what = f" | вставка: {ins['kind']} {ins.get('text') or ins.get('src')}" if ins else ""
         extra = (" | звук: " + (b["sfx"] if isinstance(b["sfx"], str) else b["sfx"]["kind"])) if b["sfx"] else ""
         grey = " | серый момент" if b["grey"] else ""
-        rows.append(f"{i:>2}. {b['a']:5.1f}-{b['b']:5.1f}  [{b['role']}, наезд x{b['zoom']}]{what}{extra}{grey}"
+        fx = (" | эффект: " + FX_KINDS[fx_kind(b["fx"])][0].lower()) if b.get("fx") else ""
+        rows.append(f"{i:>2}. {b['a']:5.1f}-{b['b']:5.1f}  [{b['role']}, наезд x{b['zoom']}]{what}{extra}{grey}{fx}"
                     f"\n    {b['text']}")
     path.write_text("\n".join(rows) + "\n")
 
@@ -122,6 +133,8 @@ def check(proj: Project) -> int:
         d = b["b"] - b["a"]
         if not 0.4 <= d <= 6:
             err.append(f"beat {i + 1}: length {d:.2f} s outside 0.4-6 s")
+        if b.get("fx") and fx_kind(b["fx"]) not in FX_KINDS:
+            err.append(f"beat {i + 1}: unknown effect {fx_kind(b['fx'])} (known: {', '.join(FX_KINDS)})")
         if b.get("insert") and "TODO" in str(b["insert"].get("src", "")):
             err.append(f"beat {i + 1}: insert still TODO ({b['insert']['src']})")
         if i and b["a"] < beats[i - 1]["b"] - 0.01:
@@ -149,6 +162,10 @@ def check(proj: Project) -> int:
     dense = [t for t, n in zip(times, times[1:]) if n - t < 1.5]
     if dense:
         warn.append(f"sound effects closer than 1.5 s at {', '.join(f'{t:.1f}' for t in dense)}")
+    times = sorted(b["a"] for b in beats if b.get("fx"))
+    dense = [t for t, n in zip(times, times[1:]) if n - t < 3]
+    if dense:
+        warn.append(f"video effects closer than 3 s at {', '.join(f'{t:.1f}' for t in dense)}")
     for e in err:
         print(f"ERROR  {e}")
     for w in warn:
@@ -162,7 +179,7 @@ def apply(proj: Project) -> None:
     if check(proj):
         sys.exit("fix the errors in plan.json first")
     beats = json.loads((proj.root / "plan.json").read_text())["beats"]
-    sfx, grey, zooms, inserts = [], [], [], []
+    sfx, grey, zooms, inserts, fx = [], [], [], [], []
     for b in beats:
         if b.get("sfx"):
             s = {"kind": b["sfx"]} if isinstance(b["sfx"], str) else dict(b["sfx"])
@@ -172,9 +189,15 @@ def apply(proj: Project) -> None:
         zooms.append({"a": b["a"], "b": b["b"], "zoom": b["zoom"]})
         if b.get("insert"):
             inserts.append({"a": b["a"], "b": b["b"], **b["insert"]})
-    for name, data in (("sfx", sfx), ("grey", grey), ("zooms", zooms), ("inserts", inserts)):
+        if b.get("fx"):
+            e = {"kind": b["fx"]} if isinstance(b["fx"], str) else b["fx"]
+            a = round(b["a"] + e.get("at", 0.0), 3)
+            fx.append({"a": a, "b": round(min(b["b"], a + e.get("len", FX_KINDS[e["kind"]][1])), 3),
+                       "kind": e["kind"]})
+    for name, data in (("sfx", sfx), ("grey", grey), ("zooms", zooms), ("inserts", inserts), ("fx", fx)):
         (proj.work / f"{name}.json").write_text(json.dumps(data, ensure_ascii=False, indent=1))
-    log.info("applied: %d sounds, %d grey, %d beats, %d inserts", len(sfx), len(grey), len(zooms), len(inserts))
+    log.info("applied: %d sounds, %d grey, %d beats, %d inserts, %d effects",
+             len(sfx), len(grey), len(zooms), len(inserts), len(fx))
 
 
 def main() -> None:

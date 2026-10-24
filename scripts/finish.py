@@ -12,6 +12,8 @@ Reads from the project:
                               or "file": "/path/sound.wav" for any other sound (optional)
   work/grey.json              [{"a": 5.0, "b": 6.4, "spinner": false}, ...] grey moments: black-and-white
                               picture, optionally with a loading spinner in the middle (optional)
+  work/fx.json                [{"a": 3.2, "b": 3.6, "kind": "shake"}, ...] shake, glitch, flash, freeze
+                              (see effects.py; under captions and graphics) (optional)
 
 Sound rules: no music (it is added in Instagram at publishing); gentle denoise (high-pass 70 Hz + light FFT
 denoise) and one static gain to the target loudness. No loudness compressor: it lifts room noise in every pause.
@@ -25,6 +27,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import effects
 from common import FPS, SKILL_DIR, Project, duration, run, setup_logging, tool
 
 log = logging.getLogger("finish")
@@ -90,6 +93,7 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
     tracks += [proj.work / "subs.mov"] if (proj.work / "subs.mov").exists() else []
     sfx = sfx_inputs(proj)
     grey = json.loads((proj.work / "grey.json").read_text()) if (proj.work / "grey.json").exists() else []
+    fx = json.loads((proj.work / "fx.json").read_text()) if (proj.work / "fx.json").exists() else []
 
     picture = proj.work / "framed.mp4" if (proj.work / "framed.mp4").exists() else clean
     ins = ["-i", str(picture)]
@@ -100,9 +104,11 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
     spin = [g for g in grey if g.get("spinner")]
     if spin:
         ins += ["-loop", "1", "-framerate", str(FPS), "-i", str(spinner_png(proj.work))]
+    first_still = 1 + len(tracks) + len(sfx) + (1 if spin else 0)
+    for png in effects.freeze_frames(picture, fx, proj.work):
+        ins += ["-loop", "1", "-framerate", str(FPS), "-i", str(png)]
 
-    v = "[0:v]"
-    graph = []
+    graph, v = effects.graph("[0:v]", fx, first_still)
     if grey:
         cond = "+".join(f"between(t,{g['a']},{g['b']})" for g in grey)
         graph.append(f"{v}hue=s=0:enable='{cond}'[vg]")
@@ -138,8 +144,8 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
     run([tool("ffmpeg"), "-y", *ins, "-/filter_complex", str(script), "-map", "[v]", "-map", "[a]", *venc,
          "-c:a", "aac", "-b:a", "256k" if final else "128k", "-t", f"{total:.3f}",
          "-movflags", "+faststart", str(out)])
-    log.info("%s: %.1f s, voice gain %+.1f dB, %d tracks, %d sounds, %d grey moments",
-             out, total, gain, len(tracks), len(sfx), len(grey))
+    log.info("%s: %.1f s, voice gain %+.1f dB, %d tracks, %d sounds, %d grey moments, %d effects",
+             out, total, gain, len(tracks), len(sfx), len(grey), len(fx))
     return out
 
 

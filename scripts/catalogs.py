@@ -3,12 +3,15 @@
   python3 catalogs.py accents <frame.jpg> <out.png> [--word "ремонт"]
   python3 catalogs.py grey <frame.jpg> <out.png>
   python3 catalogs.py layouts <frame.jpg> <out.png>
+  python3 catalogs.py effects <frame.jpg> <out.png>
   (subtitles: python3 subtitles.py sheet <frame.jpg> <out.png>)
 
 Accent looks are used by subtitles.py render --accent-look N: they replace the style's own accent (.e).
 Grey moment: 1 = black-and-white, 2 = black-and-white + loading spinner (finish.py reads work/grey.json).
-Layouts map to plan.json: 1 face close = zoom 1.6, 2 card = insert layout "card", 3 full = "full",
-4 split = "split".
+Layouts (how the frame is arranged) map to plan.json: 1 face close = zoom 1.6, 2 card = insert layout
+"card", 3 full = "full", 4 split = "split".
+Effects map to plan.json "fx": 1 shake, 2 glitch, 3 flash, 4 freeze. A still frame only hints at motion:
+show the moving version too (effects.py demo).
 """
 from __future__ import annotations
 
@@ -19,6 +22,7 @@ import logging
 from pathlib import Path
 
 from common import setup_logging
+from effects import KINDS as FX_KINDS
 
 log = logging.getLogger("catalogs")
 FONTS = ("https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&family=Caveat:wght@700"
@@ -104,6 +108,25 @@ def layouts() -> list[tuple[str, str]]:
     ]
 
 
+def effects() -> list[tuple[str, str]]:
+    """Video effects as still hints, in effects.KINDS order."""
+    tint = "background-color:{c};background-blend-mode:multiply;mix-blend-mode:screen;opacity:.75"
+    look = {
+        "shake": "<div class='bg' style='filter:blur(3px)'></div>"
+                 "<div class='bg' style='transform:translate(-28px,8px);opacity:.45'></div>"
+                 "<div class='bg' style='transform:translate(28px,-8px);opacity:.45'></div>",
+        "glitch": "<div class='bg'></div>"
+                  f"<div class='bg' style='transform:translateX(-22px);{tint.format(c='#f00')}'></div>"
+                  f"<div class='bg' style='transform:translateX(22px);{tint.format(c='#0ff')}'></div>"
+                  "<div style='position:absolute;inset:0;background:repeating-linear-gradient(0deg,"
+                  "transparent 0 40px,rgba(255,255,255,.18) 40px 52px)'></div>",
+        "flash": "<div class='bg'></div><div style='position:absolute;inset:0;background:#fff;opacity:.7'></div>",
+        "freeze": "<div class='bg' style='transform:scale(1.04)'></div>"
+                  "<div style='position:absolute;inset:0;border:28px solid #fff'></div>",
+    }
+    return [(name, look[k]) for k, (name, _) in FX_KINDS.items()]
+
+
 def render(doc: str, out: Path, cols: int) -> None:
     """Screenshot the catalogue page."""
     from playwright.sync_api import sync_playwright
@@ -123,12 +146,12 @@ def main() -> None:
     """CLI entry."""
     setup_logging()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("kind", choices=["accents", "grey", "layouts"])
+    ap.add_argument("kind", choices=["accents", "grey", "layouts", "effects"])
     ap.add_argument("frame", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--word", default="ремонт")
     a = ap.parse_args()
-    cells = accents(a.word) if a.kind == "accents" else grey() if a.kind == "grey" else layouts()
+    cells = {"accents": lambda: accents(a.word), "grey": grey, "layouts": layouts, "effects": effects}[a.kind]()
     cols = 4
     render(cells_page(a.frame, cells, cols), a.out, cols)
 
