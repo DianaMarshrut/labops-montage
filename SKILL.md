@@ -147,8 +147,11 @@ python3 scripts/blogger.py measure <style-folder>
 ```
 Look at every `sheets/NN.jpg` and `metrics.md`, write `<style-folder>/style.md`: hook, framing and layouts,
 captions (font, case, size, position, accents), inserts and graphics, sound effects, pace, CTA - techniques
-only. Then `python3 scripts/blogger.py skill <style-folder> --handle <name>` makes a skill
-`montage-<name>`: "смонтируй в стиле <name>" edits with these settings.
+only. Edit the reel with these settings (all steps and [OK] gates as usual).
+**After the final OK, ask the user:** "Сохранить этот монтаж как отдельный скилл «смонтируй в стиле @<name>»?
+Тогда в следующий раз хватит одной фразы." Only on yes: `python3 scripts/blogger.py skill <style-folder> --handle
+<name>` makes the skill `montage-<name>` (in ~/.claude/skills): "смонтируй в стиле <name>" edits with these
+settings. Add the user's edits from this reel to its style.md, so the next reel starts closer.
 
 ## 5. When something breaks
 
