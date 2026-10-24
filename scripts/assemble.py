@@ -12,6 +12,7 @@ Reads from the project:
                               or "file": "/path/sound.wav" for any other sound (optional)
   work/grey.json              [{"a": 5.0, "b": 6.4, "spinner": false}, ...] grey moments: black-and-white
                               picture, optionally with a loading spinner in the middle (optional)
+  work/voice.wav              studio-clean voice from voice.py (ElevenLabs); used instead of the camera sound
   work/fx.json                [{"a": 3.2, "b": 3.6, "kind": "shake"}, ...] shake, glitch, flash, freeze
                               (see effects.py; under captions and graphics) (optional)
 
@@ -86,8 +87,10 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
     if not clean.exists():
         raise SystemExit("run trim.py cut first")
     total = duration(clean)
-    voice_chain = DENOISE if denoise else "anull"
-    gain = target - loudness(clean, voice_chain)
+    studio = proj.work / "voice.wav"  # ElevenLabs clean voice from voice.py: already denoised
+    voice_src = studio if studio.exists() else clean
+    voice_chain = DENOISE if denoise and not studio.exists() else "anull"
+    gain = target - loudness(voice_src, voice_chain)
     # graphics first, captions last so they stay on top
     tracks = sorted((proj.work / "overlays").glob("*.mov")) if (proj.work / "overlays").exists() else []
     tracks += [proj.work / "subs.mov"] if (proj.work / "subs.mov").exists() else []
@@ -125,7 +128,12 @@ def finish(proj: Project, final: bool, target: float, denoise: bool, name: str) 
     size = "1080:1920" if final else "720:1280"
     graph.append(f"{v}scale={size}:flags=lanczos,fps={FPS},format=yuv420p[v]")
 
-    graph.append(f"[0:a]{voice_chain},volume={gain:.2f}dB,aresample=48000[voice]")
+    if studio.exists():
+        ins += ["-i", str(studio)]
+        voice_in = f"[{ins.count('-i') - 1}:a]"
+    else:
+        voice_in = "[0:a]"
+    graph.append(f"{voice_in}{voice_chain},volume={gain:.2f}dB,aresample=48000[voice]")
     mix = ["[voice]"]
     base = 1 + len(tracks)
     for k, (_, t, g) in enumerate(sfx):

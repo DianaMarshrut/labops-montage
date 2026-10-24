@@ -1,8 +1,10 @@
-"""Inserts (logos, screenshots, memes, numbers, short text) -> transparent track work/overlays/10-inserts.mov.
+"""Inserts (logos, screenshots, memes, numbers, text, animated graphics, video) -> transparent tracks in work/overlays/.
 
   python3 inserts.py <project> [--accent "#8B5CF6"]
 Reads work/inserts.json (from plan.py apply): [{"a", "b", "kind", "src", "layout", "text"}]
   kind    image | logo | meme | screenshot: src is a local image file; text: shows "text" big
+          gfx: animated graphic, "gfx": {...} (counter, bars, terminal, post, emoji, title, checklist),
+          rendered with HyperFrames (graphics.py, needs Node.js 22+) -> track work/overlays/15-gfx.mov
           src may also be a video (.mp4 .mov .webm, e.g. a meme from memes.py): it plays muted for the
           beat (looped if shorter) -> separate track work/overlays/20-video.mov
           broll: the user's own clips (only when the user sent them and asked for it); the voice goes on
@@ -10,6 +12,7 @@ Reads work/inserts.json (from plan.py apply): [{"a", "b", "kind", "src", "layout
           full   the graphic over the whole frame on a dark veil (the face is hidden for that beat)
           split  the graphic in the top half on a dark panel, the person stays visible below
           cover  (video only) the clip fills the whole frame instead of the face
+          behind (text only) big text in the upper part BEHIND the person: run cutout.py after inserts.py
           stack  (video only) 2-3 clips one above the other, the whole frame; src is a list of files
 Inserts never cover the face in the card layout; picture inserts enter with a short scale-up ("spring").
 """
@@ -25,6 +28,7 @@ import shutil
 from pathlib import Path
 from statistics import median
 
+import graphics
 from shared import FPS, H, W, Project, duration, run, setup_logging, tool
 
 log = logging.getLogger("inserts")
@@ -48,6 +52,10 @@ def face_side(faces: list[list[float]], a: float, b: float) -> tuple[float, floa
 
 def content(ins: dict, accent: str, base: Path) -> str:
     """Inner HTML of the insert: an image or big text."""
+    if ins["kind"] == "text" and ins.get("layout") == "behind":
+        size = min(300, int(1000 / (0.75 * max(len(ins["text"]), 1))))  # one line across the frame
+        return (f"<div style='font:800 {size}px/0.95 Manrope;color:#fff;text-align:center;text-transform:uppercase;"
+                f"letter-spacing:-.02em;text-shadow:0 8px 40px rgba(0,0,0,.35)'>{html.escape(ins['text'])}</div>")
     if ins["kind"] == "text":
         size = 120 if len(ins["text"]) <= 8 else 84 if len(ins["text"]) <= 16 else 60
         return (f"<div style='font:800 {size}px/1.08 Manrope;color:{accent};text-align:center;"
@@ -62,7 +70,11 @@ def content(ins: dict, accent: str, base: Path) -> str:
 def page(ins: dict, inner: str, face: tuple[float, float], scale: float) -> str:
     """Transparent 1080x1920 page with the insert in its layout."""
     layout = ins.get("layout", "card")
-    if layout == "full":
+    if layout == "behind":  # the text centre sits a little above the face, so the head covers its lower part
+        top = max(80, int(face[1] * H) - 560)
+        box = (f"<div class='g' style='position:absolute;left:30px;right:30px;top:{top}px;height:500px;"
+               f"display:flex;align-items:center;justify-content:center'>{inner}</div>")
+    elif layout == "full":
         box = (f"<div style='position:absolute;inset:0;background:rgba(10,10,14,.82)'></div>"
                f"<div class='g' style='position:absolute;left:70px;right:70px;top:300px;bottom:420px;"
                f"display:flex;align-items:center;justify-content:center'>{inner}</div>")
@@ -150,19 +162,16 @@ def build_video(proj: Project, items: list[dict], faces: list[list[float]], tota
     log.info("%d video inserts -> %s", len(items), out)
 
 
-def build(proj: Project, accent: str) -> None:
-    """Render every insert to PNGs and assemble a transparent track the length of the cut."""
+def picture_track(proj: Project, items: list[dict], faces: list[list[float]], total: float, accent: str,
+                  name: str) -> None:
+    """Render picture/text/graphic inserts to PNGs and assemble a transparent track the length of the cut."""
     from playwright.sync_api import sync_playwright
 
-    items = json.loads((proj.work / "inserts.json").read_text())
-    faces = json.loads((proj.work / "faces.json").read_text()) if (proj.work / "faces.json").exists() else []
-    total = duration(proj.work / "clean.mp4")
-    build_video(proj, [x for x in items if is_video(x)], faces, total)
-    items = [x for x in items if not is_video(x)]
-    folder = proj.work / "inserts"
+    folder = proj.work / f"inserts-{name}"
     shutil.rmtree(folder, ignore_errors=True)
     folder.mkdir()
     timeline: list[tuple[float, float, Path]] = []
+    step = 1 / FPS
     with sync_playwright() as p:
         browser = p.chromium.launch(args=["--no-sandbox"])
         pg = browser.new_page(viewport={"width": W, "height": H})
@@ -170,16 +179,16 @@ def build(proj: Project, accent: str) -> None:
         pg.set_content("<html><body style='margin:0;background:transparent'></body></html>")
         pg.screenshot(path=str(blank), omit_background=True)
         for i, ins in enumerate(items):
-            inner = content(ins, accent, proj.root)
             face = face_side(faces, ins["a"], ins["b"])
-            step = 1 / FPS
-            for j, s in enumerate(POP):
-                png = folder / f"{i:03d}-{j}.png"
+            inner = content(ins, accent, proj.root)
+            shots = [(inner, s) for s in POP]
+            for j, (inner, s) in enumerate(shots):
+                png = folder / f"{i:03d}-{j:02d}.png"
                 pg.set_content(page(ins, inner, face, s), wait_until="networkidle")
                 pg.evaluate("document.fonts.ready")
                 pg.screenshot(path=str(png), omit_background=True)
                 a = ins["a"] + j * step
-                b = ins["b"] if j == len(POP) - 1 else a + step
+                b = ins["b"] if j == len(shots) - 1 else a + step
                 timeline.append((a, b, png))
         browser.close()
     lines, t = [], 0.0
@@ -197,10 +206,51 @@ def build(proj: Project, accent: str) -> None:
     lst.write_text("\n".join(lines) + "\n")
     out_dir = proj.work / "overlays"
     out_dir.mkdir(exist_ok=True)
-    out = out_dir / "10-inserts.mov"
+    out = out_dir / f"{name}.mov"
     run([tool("ffmpeg"), "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-vf", f"fps={FPS},format=rgba",
          "-c:v", "png", "-t", f"{total:.3f}", str(out)])
     log.info("%d inserts -> %s", len(items), out)
+
+
+def build_gfx(proj: Project, items: list[dict], faces: list[list[float]], total: float, accent: str) -> None:
+    """Animated graphics: one HyperFrames render per insert (graphics.py), placed on track 15-gfx."""
+    out = proj.work / "overlays" / "15-gfx.mov"
+    out.parent.mkdir(exist_ok=True)
+    out.unlink(missing_ok=True)
+    if not items:
+        return
+    ins_args = ["-f", "lavfi", "-i", f"color=c=black@0.0:s={W}x{H}:r={FPS}:d={total:.3f},format=rgba"]
+    graph, v = [], "[0:v]"
+    for i, ins in enumerate(items):
+        mov = graphics.render(ins["gfx"], ins.get("layout", "full"), face_side(faces, ins["a"], ins["b"]), accent,
+                              ins["b"] - ins["a"], proj.work / "gfx" / f"{i:02d}")
+        ins_args += ["-i", str(mov)]
+        graph += [f"[{i + 1}:v]setpts=PTS-STARTPTS+{ins['a']:.3f}/TB,format=rgba[g{i}]",
+                  f"{v}[g{i}]overlay=0:0:eof_action=pass[v{i}]"]
+        v = f"[v{i}]"
+    script = proj.work / "gfx.filter"
+    script.write_text(";".join(graph))
+    run([tool("ffmpeg"), "-y", *ins_args, "-/filter_complex", str(script), "-map", v, "-c:v", "png",
+         "-t", f"{total:.3f}", str(out)])
+    log.info("%d animated graphics -> %s", len(items), out)
+
+
+def build(proj: Project, accent: str) -> None:
+    """All insert tracks: 05-behind (text behind the head), 10-inserts (pictures, text), 15-gfx (animated
+    graphics), 20-video."""
+    items = json.loads((proj.work / "inserts.json").read_text())
+    faces = json.loads((proj.work / "faces.json").read_text()) if (proj.work / "faces.json").exists() else []
+    total = duration(proj.work / "clean.mp4")
+    build_video(proj, [x for x in items if is_video(x)], faces, total)
+    build_gfx(proj, [x for x in items if x["kind"] == "gfx"], faces, total, accent)
+    behind = [x for x in items if x.get("layout") == "behind"]
+    pictures = [x for x in items if not is_video(x) and x["kind"] != "gfx" and x.get("layout") != "behind"]
+    for name, group in (("05-behind", behind), ("10-inserts", pictures)):
+        (proj.work / "overlays" / f"{name}.mov").unlink(missing_ok=True)
+        if group:
+            picture_track(proj, group, faces, total, accent, name)
+    if behind:
+        log.info("text behind the head: run cutout.py %s next", proj.root)
 
 
 def main() -> None:

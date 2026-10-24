@@ -3,6 +3,7 @@ requests>=2.31
 playwright>=1.40
 # optional: free local speech recognition instead of Groq/OpenAI
 # faster-whisper>=1.0
-# optional: face tracking
-# opencv-python>=4.8
-# mediapipe>=0.10
+# face tracking (jump zooms, inserts beside the head)
+opencv-python>=4.8
+# person cut-out for text behind the head (or HyperFrames remove-background, see SKILL.md)
+mediapipe>=0.10

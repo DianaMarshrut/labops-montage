@@ -1,6 +1,6 @@
 ---
 name: labops-montage
-description: Edit vertical talking-head reels (Instagram Reels, Shorts, TikTok) from raw phone footage - cut pauses and retakes, jump zooms on the face, captions from a catalogue, accents, inserts (logos, screenshots, memes found by the skill, numbers, the user's own clips), grey moments, video effects (shake, glitch, flash, freeze), sound effects, clean voice - with the user's OK at every key step. Also analyses a blogger's editing style from their reels and packs it into its own skill. Use when the user asks to edit/montage a reel or video, «смонтируй рилс», «смонтируй в стиле @...», «разбери монтаж блогера», or sends raw footage for a reel.
+description: Edit vertical talking-head reels (Instagram Reels, Shorts, TikTok) from raw phone footage - cut pauses and retakes, jump zooms on the face, captions from a catalogue, accents, inserts (logos, screenshots, memes found by the skill, numbers, the user's own clips), animated graphics (HyperFrames), text behind the head (person cut-out), studio voice (ElevenLabs), grey moments, video effects (shake, glitch, flash, freeze), sound effects, clean voice - with the user's OK at every key step. Also analyses a blogger's editing style from their reels and packs it into its own skill. Use when the user asks to edit/montage a reel or video, «смонтируй рилс», «смонтируй в стиле @...», «разбери монтаж блогера», or sends raw footage for a reel.
 ---
 
 # labops-montage
@@ -18,17 +18,21 @@ agent, the user does not see your terminal: everything they must see goes into t
    Missing ffmpeg: macOS `brew install ffmpeg`, Windows `winget install Gyan.FFmpeg`,
    Linux - a static build from johnvansickle.com/ffmpeg (distro packages are often older than 7.1).
 2. `pip install -r requirements.txt` and `python3 -m playwright install chromium`
-   (Playwright draws captions and inserts in a headless browser).
-   Optional: `pip install opencv-python` (face tracking for jump zooms), `pip install faster-whisper`
-   (free speech recognition on this computer, no key).
-3. Keys go to `~/.config/labops-montage/keys.env`, one per line `NAME=value`. Give the user the command to
+   (Playwright draws captions and inserts in a headless browser; OpenCV finds the face; MediaPipe cuts the
+   person out of the background). Optional: `pip install faster-whisper` (free speech recognition, no key).
+3. Node.js 22+ for animated graphics (HyperFrames: HTML + GSAP animation -> video): `node --version`.
+   Missing: macOS `brew install node`, Windows `winget install OpenJS.NodeJS.LTS`, Linux nodejs.org/en/download
+   (or nvm). HyperFrames itself is fetched by `npx` on the first render. Check: `python3 scripts/graphics.py demo
+   test.mov`. A different Node: set `LABOPS_NPX=/path/to/npx`.
+4. Keys go to `~/.config/labops-montage/keys.env`, one per line `NAME=value`. Give the user the command to
    open this file and let them paste the key there themselves; never print keys in replies.
    - `GROQ_API_KEY` - speech recognition, free tier (console.groq.com). Or `OPENAI_API_KEY` (paid), or
      faster-whisper without a key.
    - `HIKERAPI_KEY` - download Instagram reels for style analysis (hikerapi.com, about $0.001 per request).
      Without it the user sends reference videos as files.
-   - `ELEVENLABS_API_KEY` - optional, more sound effects (elevenlabs.io, the free plan has monthly credits).
-4. `python3 scripts/doctor.py --keep` -> everything OK, show the user the test preview.
+   - `ELEVENLABS_API_KEY` - optional: studio-clean voice (`voice.py`) and more sound effects (elevenlabs.io,
+     the free plan has 10 000 credits a month; voice cleaning takes about 1 000 credits per minute of audio).
+5. `python3 scripts/doctor.py --keep` -> everything OK, show the user the test preview.
 
 ## 1. Files
 
@@ -75,6 +79,11 @@ key), look at `memes.py sheet <project>/memes memes.png`, choose by the meaning 
 `memes.py get <project>/memes N`, show the chosen memes (still frames) in the passport; replace any the user
 dislikes. No memes with brands or logos. In plan.json: `{"kind": "meme", "src": "<file>", "layout":
 "full|card|split"}`; video memes play muted for the beat.
+Animated graphics (`{"kind": "gfx", "layout": "full|split|card", "gfx": {...}}`, types in `graphics.py --help`):
+for numbers, comparisons, lists, commands said in the speech; only real numbers and words. Text behind the head:
+`{"kind": "text", "layout": "behind", "text": "РЕМОНТ"}` (one short word, big, the head covers its lower part).
+Voice: offer the studio voice (ElevenLabs voice isolation, `voice.py`) when the sound is noisy or echoey and the
+user has a key; it spends credits, so ask first.
 The user's own clips (b-roll) only when the user sent them and asked: `{"kind": "broll", "src": "<file>",
 "layout": "cover"}` (whole frame, the voice goes on) or `"src": [a, b, c], "layout": "stack"` (2-3 clips one above
 the other).
@@ -87,6 +96,7 @@ python3 scripts/catalogs.py accents frame.jpg accents.png     # 8 accent looks
 python3 scripts/catalogs.py grey frame.jpg grey.png           # grey moments
 python3 scripts/catalogs.py layouts frame.jpg layouts.png     # how the frame is arranged during inserts
 python3 scripts/catalogs.py effects frame.jpg effects.png     # 4 video effects (still hint)
+python3 scripts/graphics.py sheet frame.jpg graphics.png      # 7 animated graphics (final frame)
 python3 scripts/effects.py demo <project>/work/clean.mp4 effects.mp4   # the same effects moving, numbered
 ```
 To the user say "how the frame is arranged" (not "layout"), and explain "glitch" (colour noise like a broken TV).
@@ -101,7 +111,9 @@ python3 scripts/plan.py apply <project>
 python3 scripts/logos.py <project>/assets Claude Notion   # official logo candidates: look, pick, put the path in plan.json
 python3 scripts/faces.py track <project> && python3 scripts/faces.py frame <project>
 python3 scripts/subtitles.py render <project> --style <id> --accent "слово1,слово2" --accent-look <N>
-python3 scripts/inserts.py <project>
+python3 scripts/voice.py <project>              # only if the user chose the studio voice (ElevenLabs, spends credits)
+python3 scripts/inserts.py <project>             # pictures, text, video, animated graphics (HyperFrames)
+python3 scripts/cutout.py <project>              # only if there is text behind the head (layout "behind")
 python3 scripts/assemble.py <project>              # out/preview.mp4, 720p
 python3 scripts/framesheet.py <project>                # out/frames.jpg: look at it before sending
 python3 scripts/verify.py <project>                  # fix every ERROR
