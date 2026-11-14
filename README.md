@@ -1,7 +1,7 @@
 # labops-montage
 
 Скилл для Claude Code: Claude сам монтирует ваш рилс из сырого видео с телефона, а вы только выбираете варианты и говорите «ОК».
-Автор: [labopsai](https://labopsai.pro).
+Автор: [labops](https://labopsai.pro).
 
 ## Как начать
 
